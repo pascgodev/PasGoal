@@ -1,0 +1,52 @@
+"[ ]" means not important to project
+
+core
+	AES => "crypto/aes"
+	AccountKeyStorage
+		// This class reduces memory because allows to reuse account keys
+		// Based on tests, allows a 10-20% memory reduction when multiple accounts use the same Account key
+	Accounts => TODO
+	[BaseTypes]
+	BlockChain => TODO
+	Chunk => TODO: According to Program Design
+	[Const]
+	ECIES (Elliptic Curve Integrated Encryption Scheme) "github.com/bitherhq/go-bither/crypto/ecie"
+	FileStorage
+	[GPUMining]
+	Log "log"
+	NetProtect
+		This unit will include objects usefull for control statistical
+		information about nodes IP's to decide if a IP is a scammer or is abusive.
+		Information will be stored in a "TIpInfos" object class, thread protected,
+		that will store statistical info for each IP and will return
+		info based on Limits for decision
+		Can be used both for a Node (p2p) and also for a JSON-RPC server
+	NetProtocal TODO: P2P Protocol, Absolutely Important
+	Node TODO: Equal Main Func to the Project
+		An app can only contains 1 node.
+		A node contains:
+		  - 1 Bank
+		  - 1 NetServer  (Accepting incoming connections)
+		  - 1 Operations (Operations has actual BlockChain with Operations and SafeBankTransaction to operate with the Bank)
+		  - 0..x NetClients
+		  - 0..x Miners
+	OpTx TODO = Operation
+	OpMultiOperation (TODO Based on PIP-0017)
+	OpenSSL & Signature "github.com/spacemonkeygo/openssl"
+	Crypto
+	[DataTypes]
+	Encryption
+	[PoolMining]
+	RPC TODO
+	RandomHash TODO
+	ServerApp TODO: Local Daemon Like
+	Settings TODO
+	SHA256 "crypto/sha256"
+	TCP "net"
+	Ops
+	Daemon "github.com/takama/daemon"
+
+
+
+
+[GUI(classic & experimental)]
