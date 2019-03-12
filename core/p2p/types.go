@@ -23,6 +23,14 @@ type HelloDataContent struct {
 	NodeServerAddrList int32
 }
 
+type ErrorDataContent struct {
+	ErrorData string
+}
+
+type MessageDataContent struct {
+	MessageData string
+}
+
 type NodeServerAddress struct {
 	Port              uint16
 	LastConnTimestamp uint16

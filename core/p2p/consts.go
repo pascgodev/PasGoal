@@ -15,14 +15,14 @@ const (
 	OpGetBlocks                = 0x0010
 	OpNewBlock                 = 0x0011
 	OpNewBlock_FastPropagation = 0x0012
-	OpGetBlockchainOperations  = 0x0013
+	OpGetBlockChainOperations  = 0x0013
 	OpAddOperations            = 0x0020
 	OpGetSafeBox               = 0x0021
 	OpGetPendingOperations     = 0x0030
 	OpGetAccount               = 0x0031
-	OpGetPubkeyAccounts        = 0x0032
-	OpReserved_Start           = 0x1000
-	OpReserved_End             = 0x1FFF
+	OpGetPubKeyAccounts        = 0x0032
+	OpReservedStart            = 0x1000
+	OpReservedEnd              = 0x1FFF
 	OpErrNotImpl               = 0x00FF
 
 	NoError                     = 0x0000
@@ -32,7 +32,7 @@ const (
 	ErrorInvalidDataBufferInfo  = 0x0010
 	ErrorInternalServerError    = 0x0011
 	ErrorInvalidNewAccount      = 0x0012
-	ErrorSafeboxNotFound        = 0x0020
+	ErrorSafeBoxNotFound        = 0x0020
 	ErrorNotAvailable           = 0x0021
 
 	NoId = 0x0000
