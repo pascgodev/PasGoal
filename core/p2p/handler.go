@@ -124,11 +124,11 @@ func (p *Peer) handleHello(c net.Conn, dataContent []byte) {
 
 // handleHello will handle the request whose NetMethod is NetRequest and Operation is Error
 func (p *Peer) handleError(c net.Conn, dataContent []byte) {
-	fmt.Println("ERR: from: ", c.RemoteAddr(), " error: ", &dataContent)
+	fmt.Println("ERR: from: ", c.RemoteAddr(), " error: ", string(dataContent[:]))
 }
 
 func (p *Peer) handleMessage(c net.Conn, dataContent []byte) {
-
+	fmt.Println(c.RemoteAddr(), "says", string(dataContent[:]))
 }
 
 func (p *Peer) handleGetBlockHeaders(c net.Conn, dataContent []byte) {}
