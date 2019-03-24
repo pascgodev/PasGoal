@@ -14,12 +14,16 @@ func main() {
 	app.Name = "Pasgoal"
 	app.Usage = "More than Golang implement of PascalCoin"
 	app.Version = "0.0.1"
-	//app.HideHelp = true
+
+	var port int
+	var withBootstrapPeers bool
 
 	app.Action = func(c *cli.Context) error {
 		// main
-		port := c.Int("port")
-		p := p2p.InitPeer(port)
+		port = c.Int("port")
+		withBootstrapPeers = c.BoolT("with-bootstrap-peers")
+		p := p2p.InitPeer(port, withBootstrapPeers)
+
 		p.Start()
 
 		return nil
@@ -44,6 +48,10 @@ func main() {
 			Usage: "Port for RPC",
 			Value: 5006,
 		},
+		cli.BoolTFlag{
+			Name:  "with-bootstrap-peers",
+			Usage: "start local node with built-in bootstrap peers",
+		},
 	}
 
 	app.Flags = flags
@@ -52,4 +60,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Stuck the main routine
+	select {}
 }

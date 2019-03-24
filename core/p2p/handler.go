@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/golang/glog"
 	"net"
 )
 
@@ -12,7 +13,7 @@ type Conn struct {
 }
 
 // handleConnection deal with all conn and read their msg
-func (p *Peer) handleConnection(c net.Conn) {
+func (p *LocalPeer) handleConnection(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
 	netData := make([]byte, 22)
 	// getHeader
@@ -65,8 +66,7 @@ func (p *Peer) handleConnection(c net.Conn) {
 			fmt.Println(err)
 			return
 		}
-		fmt.Println(dataHeader.Operation)
-		fmt.Println(dataHeader.DataSize)
+
 		dataContent := make([]byte, dataHeader.DataSize)
 		_, err = r.Read(dataContent)
 		if err != nil {
@@ -78,81 +78,125 @@ func (p *Peer) handleConnection(c net.Conn) {
 		case NetRequest:
 			switch dataHeader.Operation {
 			case OpHello:
-				p.handleHello(c, dataContent)
+				handleReqHello(c, dataContent, dataHeader.RequestId)
 			case OpError:
-				p.handleError(c, dataContent)
+				handleReqError(c, dataContent, dataHeader.RequestId)
 			case OpMessage:
-				p.handleMessage(c, dataContent)
+				handleReqMessage(c, dataContent, dataHeader.RequestId)
 			case OpGetBlockHeaders:
-				p.handleGetBlockHeaders(c, dataContent)
+				handleReqGetBlockHeaders(c, dataContent, dataHeader.RequestId)
 			case OpGetBlocks:
-				p.handleGetBlocks(c, dataContent)
+				handleReqGetBlocks(c, dataContent, dataHeader.RequestId)
 			case OpNewBlock:
-				p.handleNewBlock(c, dataContent)
+				handleReqNewBlock(c, dataContent, dataHeader.RequestId)
 			case OpNewBlock_FastPropagation:
-				p.handleNewBlock_FastPropagation(c, dataContent)
+				handleReqNewBlock_FastPropagation(c, dataContent, dataHeader.RequestId)
 			case OpGetBlockChainOperations:
-				p.handleGetBlockChainOperations(c, dataContent)
+				handleReqGetBlockChainOperations(c, dataContent, dataHeader.RequestId)
 			case OpAddOperations:
-				p.handleAddOperations(c, dataContent)
+				handleReqAddOperations(c, dataContent, dataHeader.RequestId)
 			case OpGetSafeBox:
-				p.handleGetSafeBox(c, dataContent)
+				handleReqGetSafeBox(c, dataContent, dataHeader.RequestId)
 			case OpGetPendingOperations:
-				p.handleGetPendingOperations(c, dataContent)
+				handleReqGetPendingOperations(c, dataContent, dataHeader.RequestId)
 			case OpGetAccount:
-				p.handleGetAccount(c, dataContent)
+				handleReqGetAccount(c, dataContent, dataHeader.RequestId)
 			case OpGetPubKeyAccounts:
-				p.handleGetPubKeyAccounts(c, dataContent)
+				handleReqGetPubKeyAccounts(c, dataContent, dataHeader.RequestId)
 			case OpReservedStart:
-				p.handleReservedStart(c, dataContent)
+				handleReqReservedStart(c, dataContent, dataHeader.RequestId)
 			case OpReservedEnd:
-				p.handleReservedEnd(c, dataContent)
+				handleReqReservedEnd(c, dataContent, dataHeader.RequestId)
 			case OpErrNotImpl:
-				p.handleErrNotImpl(c, dataContent)
+				handleReqErrNotImpl(c, dataContent, dataHeader.RequestId)
 			case NoOp:
 			default:
 				continue
+			}
+		case NetResponse:
+			switch dataHeader.Operation {
+			case OpHello:
+				handleResHello(c, dataContent, dataHeader.RequestId)
 			}
 		}
 	}
 }
 
 // handleHello will handle the request whose NetMethod is NetRequest and Operation is Hello
-func (p *Peer) handleHello(c net.Conn, dataContent []byte) {
+func (p *LocalPeer) handleHello(c net.Conn, dataContent []byte) {
 	fmt.Println("Hello Received from", c.RemoteAddr())
 }
 
 // handleHello will handle the request whose NetMethod is NetRequest and Operation is Error
-func (p *Peer) handleError(c net.Conn, dataContent []byte) {
+func (p *LocalPeer) handleError(c net.Conn, dataContent []byte) {
 	fmt.Println("ERR: from: ", c.RemoteAddr(), " error: ", string(dataContent[:]))
 }
 
-func (p *Peer) handleMessage(c net.Conn, dataContent []byte) {
+func (p *LocalPeer) handleMessage(c net.Conn, dataContent []byte) {
 	fmt.Println(c.RemoteAddr(), "says", string(dataContent[:]))
 }
 
-func (p *Peer) handleGetBlockHeaders(c net.Conn, dataContent []byte) {}
+// handleReqHello will handleReq the request whose NetMethod is NetRequest and Operation is Hello
+func handleReqHello(c net.Conn, dataContent []byte, requestId uint32) {
+	// Hello ->
+	/*
+		<-
+		{
+			// Version info
+			// Block & Bank & Treasury info
+			// More
+		}
+	*/
+	fmt.Println("Req Hello Received from", c.RemoteAddr())
 
-func (p *Peer) handleGetBlocks(c net.Conn, dataContent []byte) {}
+	resBytes := GenBytes(NetResponse, OpHello, 0, 0, []byte{})
+	l, err := c.Write(resBytes)
+	if err != nil {
+		glog.Warningln(err)
+	}
+	if l != len(resBytes) {
+		handleReqHello(c, dataContent, requestId)
+	}
+}
 
-func (p *Peer) handleNewBlock(c net.Conn, dataContent []byte) {}
+func handleResHello(c net.Conn, dataContent []byte, requestId uint32) {
+	fmt.Println("Res Hello Received from", c.RemoteAddr())
+}
 
-func (p *Peer) handleNewBlock_FastPropagation(c net.Conn, dataContent []byte) {}
+// handleReqHello will handleReq the request whose NetMethod is NetRequest and Operation is Error
+func handleReqError(c net.Conn, dataContent []byte, requestId uint32) {
+	fmt.Println("ERR: from: ", c.RemoteAddr(), " error: ", string(dataContent[:]))
+}
 
-func (p *Peer) handleGetBlockChainOperations(c net.Conn, dataContent []byte) {}
+func handleReqMessage(c net.Conn, dataContent []byte, requestId uint32) {
+	fmt.Println(c.RemoteAddr(), "says", string(dataContent[:]))
+}
 
-func (p *Peer) handleAddOperations(c net.Conn, dataContent []byte) {}
+// handleReqGetBlockHeaders
+func handleReqGetBlockHeaders(c net.Conn, dataContent []byte, requestId uint32) {
 
-func (p *Peer) handleGetSafeBox(c net.Conn, dataContent []byte) {}
+}
 
-func (p *Peer) handleGetPendingOperations(c net.Conn, dataContent []byte) {}
+func handleReqGetBlocks(c net.Conn, dataContent []byte, requestId uint32) {}
 
-func (p *Peer) handleGetAccount(c net.Conn, dataContent []byte) {}
+func handleReqNewBlock(c net.Conn, dataContent []byte, requestId uint32) {}
 
-func (p *Peer) handleGetPubKeyAccounts(c net.Conn, dataContent []byte) {}
+func handleReqNewBlock_FastPropagation(c net.Conn, dataContent []byte, requestId uint32) {}
 
-func (p *Peer) handleReservedStart(c net.Conn, dataContent []byte) {}
+func handleReqGetBlockChainOperations(c net.Conn, dataContent []byte, requestId uint32) {}
 
-func (p *Peer) handleReservedEnd(c net.Conn, dataContent []byte) {}
+func handleReqAddOperations(c net.Conn, dataContent []byte, requestId uint32) {}
 
-func (p *Peer) handleErrNotImpl(c net.Conn, dataContent []byte) {}
+func handleReqGetSafeBox(c net.Conn, dataContent []byte, requestId uint32) {}
+
+func handleReqGetPendingOperations(c net.Conn, dataContent []byte, requestId uint32) {}
+
+func handleReqGetAccount(c net.Conn, dataContent []byte, requestId uint32) {}
+
+func handleReqGetPubKeyAccounts(c net.Conn, dataContent []byte, requestId uint32) {}
+
+func handleReqReservedStart(c net.Conn, dataContent []byte, requestId uint32) {}
+
+func handleReqReservedEnd(c net.Conn, dataContent []byte, requestId uint32) {}
+
+func handleReqErrNotImpl(c net.Conn, dataContent []byte, requestId uint32) {}

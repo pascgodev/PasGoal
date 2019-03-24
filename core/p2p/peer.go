@@ -2,59 +2,116 @@ package p2p
 
 import (
 	"fmt"
+	"github.com/golang/glog"
 	"github.com/pasgo/pasgo/config"
 	"net"
-	"strconv"
 )
 
-type Peer struct {
-	LocalPort int
-	Listener  net.Listener
-	ConnPool  []net.Conn
+type RemotePeer struct {
+	RemoteIP   string
+	RemotePort uint16
+	PeerKey    PeerKey
+	LastTime   uint32
+	LocalPort  uint16
 }
 
-func InitPeer(port int) *Peer {
-	ln, err := net.Listen("tcp", ":"+strconv.Itoa(port))
+type PeerKey uint32
+
+type LocalPeer struct {
+	LocalPort     int
+	LocalListener *net.TCPListener
+	ConnPool      []*net.TCPConn
+	RemotePeers   []*RemotePeer
+	LocalKey      PeerKey
+
+	addConn chan *net.TCPConn
+}
+
+func InitPeer(port int, withBootstrapPeers bool) *LocalPeer {
+
+	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{
+		IP:   net.ParseIP("0.0.0.0"),
+		Port: port,
+	})
 	if err != nil {
-		fmt.Println(err)
+		glog.Warningln(err)
 	}
 
-	localPeer := &Peer{
-		LocalPort: port,
-		Listener:  ln,
-		ConnPool:  make([]net.Conn, 0),
+	localPeer := &LocalPeer{
+		LocalPort:     port,
+		LocalListener: listener,
+		ConnPool:      []*net.TCPConn{},
+		RemotePeers:   []*RemotePeer{},
 	}
 
-	localPeer.Bootstrap()
+	if withBootstrapPeers == true {
+		localPeer.Bootstrap()
+	}
 
 	return localPeer
 }
 
 // Init will connect to the bootstrap nodes and put them into ConnPool
-func (p *Peer) Bootstrap() {
-	peers := config.GetBootstrapPeers()
-	for _, peerAddress := range peers {
-		conn, err := net.Dial("tcp", peerAddress)
+func (p *LocalPeer) Bootstrap() {
+	peerConfigList := config.GetBootstrapPeers()
+	for _, peerConfig := range peerConfigList {
+		addr, err := net.ResolveTCPAddr("tcp4", peerConfig)
 		if err != nil {
-			fmt.Println("The Bootstrap peer", peerAddress, "is unreachable")
+			fmt.Println("The Bootstrap peer", peerConfig, "is wrong")
+			continue
+		}
+
+		conn, err := net.DialTCP("tcp4", nil, addr)
+		if err != nil {
+			fmt.Println("The Bootstrap peer", peerConfig, "is unreachable")
 			continue
 		}
 		p.ConnPool = append(p.ConnPool, conn)
+	}
+	//TODO: get more peers (additional) from DB
+}
+
+func (p *LocalPeer) Start() {
+	fmt.Println("Local peer starts at port:", p.LocalPort)
+	for _, conn := range p.ConnPool {
+		go p.handleConnection(conn)
+		p.SendHello(conn)
+	}
+
+	p.addConn = make(chan *net.TCPConn, 1)
+	// Run routines waiting for new peers
+	go p.waitForPeerFromPeer()
+
+	go p.waitForPeerFromListener()
+}
+
+func (p *LocalPeer) waitForPeerFromListener() {
+	for {
+		conn, err := p.LocalListener.AcceptTCP()
+		if err != nil {
+			glog.Warningln(err)
+		}
+		glog.Infoln("New Conn from", conn.RemoteAddr().String())
+		p.addConn <- conn
 	}
 }
 
-func (p *Peer) Start() {
-	fmt.Println("Local peer starts at port:", p.LocalPort)
+func (p *LocalPeer) waitForPeerFromPeer() {
 	for {
-		conn, err := p.Listener.Accept()
-		if err != nil {
-			fmt.Println(err)
-			continue
+		select {
+		case newConn := <-p.addConn:
+			glog.Infoln("add new conn", newConn.RemoteAddr())
+			p.ConnPool = append(p.ConnPool, newConn)
+			go p.handleConnection(newConn)
 		}
-		p.ConnPool = append(p.ConnPool, conn)
-
-		go p.handleConnection(conn)
 	}
-	//TODO: Then Say Hello to all conn
-	//
+}
+
+func (p *LocalPeer) CloseAll() {
+	for _, conn := range p.ConnPool {
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("Failed to close the conn", conn, "for", err)
+		}
+	}
 }
